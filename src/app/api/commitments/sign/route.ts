@@ -1,6 +1,6 @@
 // src/app/api/commitments/sign/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { commitmentUtils } from '@/lib/kv';
+import { commitmentUtils } from '@/lib/redis';
 import { SignCommitmentRequest } from '@/lib/models/commitment';
 
 // POST /api/commitments/sign - Sign up for a commitment

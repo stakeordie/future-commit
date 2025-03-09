@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../providers/auth-provider';
 import { useRouter } from 'next/navigation';
 import { Commitment } from '@/lib/models/commitment';
-import { commitmentUtils } from '@/lib/kv';
+import { commitmentUtils } from '@/lib/redis';
 
 export default function Dashboard() {
   const { auth, signOut } = useAuth();

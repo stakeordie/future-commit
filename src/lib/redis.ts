@@ -1,14 +1,25 @@
-
-// src/lib/kv.ts
-import { kv } from '@vercel/kv';
+// src/lib/redis.ts
+import { createClient } from 'redis';
 import { Commitment } from './models/commitment';
+
+// Create Redis client - we'll connect when needed
+const getRedisClient = async () => {
+  const client = createClient({ 
+    url: process.env.REDIS_URL,
+    // Add any other options needed
+  });
+  
+  // Connect if not already connected
+  if (!client.isOpen) {
+    await client.connect();
+  }
+  
+  return client;
+};
 
 // Key prefixes for different data types
 const COMMITMENT_PREFIX = 'commitment:';
 const USER_PREFIX = 'user:';
-
-// Export the kv instance for direct access if needed
-export { kv };
 
 // Helper function to generate keys
 const generateKey = (prefix: string, id: string) => `${prefix}${id}`;
@@ -17,6 +28,8 @@ const generateKey = (prefix: string, id: string) => `${prefix}${id}`;
 export const commitmentUtils = {
   // Create a new commitment
   async createCommitment(commitment: Commitment): Promise<string> {
+    const redis = await getRedisClient();
+    
     const id = crypto.randomUUID();
     const key = generateKey(COMMITMENT_PREFIX, id);
     
@@ -24,24 +37,29 @@ export const commitmentUtils = {
     commitment.id = id;
     commitment.createdAt = Date.now();
     
-    // Store in KV
-    await kv.set(key, commitment);
+    // Store in Redis
+    await redis.set(key, JSON.stringify(commitment));
     
     // Add to list of all commitments
-    await kv.sadd('commitments', id);
+    await redis.sAdd('commitments', id);
     
     return id;
   },
   
   // Get a commitment by ID
   async getCommitment(id: string): Promise<Commitment | null> {
+    const redis = await getRedisClient();
+    
     const key = generateKey(COMMITMENT_PREFIX, id);
-    return await kv.get(key);
+    const data = await redis.get(key);
+    return data ? JSON.parse(data) : null;
   },
   
   // Get all commitments
   async getAllCommitments(): Promise<Commitment[]> {
-    const ids = await kv.smembers('commitments') as string[];
+    const redis = await getRedisClient();
+    
+    const ids = await redis.sMembers('commitments');
     
     if (!ids.length) return [];
     
@@ -54,8 +72,11 @@ export const commitmentUtils = {
   
   // Sign up for a commitment
   async signCommitment(commitmentId: string, fid: number): Promise<boolean> {
+    const redis = await getRedisClient();
+    
     const key = generateKey(COMMITMENT_PREFIX, commitmentId);
-    const commitment = await kv.get(key) as Commitment | null;
+    const data = await redis.get(key);
+    const commitment = data ? JSON.parse(data) as Commitment : null;
     
     if (!commitment) return false;
     
@@ -69,14 +90,17 @@ export const commitmentUtils = {
       status: 'active'
     };
     
-    await kv.set(key, commitment);
+    await redis.set(key, JSON.stringify(commitment));
     return true;
   },
   
   // Revoke a commitment
   async revokeCommitment(commitmentId: string, fid: number, reason: string): Promise<boolean> {
+    const redis = await getRedisClient();
+    
     const key = generateKey(COMMITMENT_PREFIX, commitmentId);
-    const commitment = await kv.get(key) as Commitment | null;
+    const data = await redis.get(key);
+    const commitment = data ? JSON.parse(data) as Commitment : null;
     
     if (!commitment || !commitment.participants || !commitment.participants[fid]) {
       return false;
@@ -85,7 +109,7 @@ export const commitmentUtils = {
     commitment.participants[fid].status = 'revoked';
     commitment.participants[fid].revokeReason = reason;
     
-    await kv.set(key, commitment);
+    await redis.set(key, JSON.stringify(commitment));
     return true;
   }
 };

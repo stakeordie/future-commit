@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCanvas } from 'canvas';
-import { commitmentUtils } from '@/lib/kv';
+import { commitmentUtils } from '@/lib/redis';
 import { Commitment } from '@/lib/models/commitment';
 
 // Function to generate images for our commitment tracker frame

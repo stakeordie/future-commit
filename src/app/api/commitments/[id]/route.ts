@@ -1,6 +1,6 @@
 // src/app/api/commitments/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { commitmentUtils } from '@/lib/kv';
+import { commitmentUtils } from '@/lib/redis';
 
 // GET /api/commitments/[id] - Get commitment by ID
 export async function GET(

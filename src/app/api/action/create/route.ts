@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { commitmentUtils } from '@/lib/kv';
+import { commitmentUtils } from '@/lib/redis';
 
 // Get the base URL for the frame
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';

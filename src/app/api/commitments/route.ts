@@ -1,6 +1,6 @@
 // src/app/api/commitments/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { commitmentUtils } from '@/lib/kv';
+import { commitmentUtils } from '@/lib/redis';
 import { CreateCommitmentRequest } from '@/lib/models/commitment';
 
 // GET /api/commitments - Get all commitments

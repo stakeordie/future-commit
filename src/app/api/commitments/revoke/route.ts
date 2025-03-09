@@ -1,6 +1,6 @@
 // src/app/api/commitments/revoke/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { commitmentUtils } from '@/lib/kv';
+import { commitmentUtils } from '@/lib/redis';
 import { RevokeCommitmentRequest } from '@/lib/models/commitment';
 
 // POST /api/commitments/revoke - Revoke a commitment

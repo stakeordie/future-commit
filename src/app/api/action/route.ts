@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { NeynarAPIClient } from '@neynar/nodejs-sdk';
-import { commitmentUtils } from '@/lib/kv';
+import { commitmentUtils } from '@/lib/redis';
 
 // Initialize Neynar client - we'll use this to validate the frame message
 // You'll need to replace this with your actual Neynar API key
