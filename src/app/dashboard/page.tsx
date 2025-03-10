@@ -122,7 +122,7 @@ export default function Dashboard() {
     <div className="snes-page snes-container">
       <header className="snes-header">
         <div className="mx-auto max-w-7xl flex justify-between items-center">
-          <h1 className="snes-header-title">Commitment Tracker</h1>
+          <h1 className="snes-header-title">Future Commit</h1>
           <div className="snes-user-profile">
             {user?.pfp_url && (
               <Image
