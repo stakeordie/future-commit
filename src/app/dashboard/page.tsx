@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useNeynarContext } from '@neynar/react';
 import { useRouter } from 'next/navigation';
 import { Commitment } from '@/lib/models/commitment';
-import { commitmentUtils } from '@/lib/redis';
 import Image from 'next/image';
 
 export default function Dashboard() {
@@ -66,8 +65,6 @@ export default function Dashboard() {
       if (!response.ok) {
         throw new Error('Failed to create commitment');
       }
-
-      const data = await response.json();
       
       // Refresh commitments
       const updatedResponse = await fetch('/api/commitments');
