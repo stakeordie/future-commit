@@ -14,7 +14,7 @@ export interface UserProfile {
 // Create Redis client - we'll connect when needed
 const getRedisClient = async () => {
   const client = createClient({ 
-    url: process.env.NEXT_PUBLIC_REDIS_URL,
+    url: process.env.REDIS_URL,
     // Add any other options needed
   });
   
