@@ -1,5 +1,5 @@
 // src/lib/auth.ts
-import { NeynarAPIClient } from '@neynar/nodejs-sdk';
+// No server-side imports!
 
 // Types
 export interface UserProfile {
@@ -18,10 +18,6 @@ export interface AuthState {
 
 // Constants
 const AUTH_STORAGE_KEY = 'commitment_tracker_auth';
-const NEYNAR_API_KEY = process.env.NEXT_PUBLIC_NEYNAR_API_KEY || 'REPLACE_WITH_YOUR_NEYNAR_API_KEY';
-
-// Initialize Neynar client
-const neynar = new NeynarAPIClient({ apiKey: NEYNAR_API_KEY });
 
 // Local storage utilities
 export const saveAuthToStorage = (auth: AuthState): void => {
@@ -50,13 +46,15 @@ export const clearAuthFromStorage = (): void => {
   }
 };
 
-// Auth functions
+// Auth functions that call API routes
 export const generateSignInLink = async (redirectUrl: string) => {
   try {
-    const { token, url } = await neynar.generateSignInLink({
-      redirectUrl
+    const response = await fetch('/api/auth/sign-in', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ redirectUrl })
     });
-    return { token, url };
+    return await response.json();
   } catch (error) {
     console.error('Error generating sign-in link:', error);
     throw error;
@@ -65,21 +63,21 @@ export const generateSignInLink = async (redirectUrl: string) => {
 
 export const verifySignIn = async (token: string): Promise<AuthState> => {
   try {
-    const { status, fid, username, displayName, pfp } = await neynar.verifySignInLink(token);
+    const response = await fetch('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    });
     
-    if (status !== 'completed') {
-      throw new Error('Sign-in not completed');
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Sign-in failed');
     }
     
     const authState: AuthState = {
       isAuthenticated: true,
-      user: {
-        fid,
-        username,
-        displayName: displayName || username,
-        avatar: pfp,
-        isVerified: true, // You might want to check this with Neynar
-      },
+      user: data.user,
       authToken: token
     };
     
@@ -102,15 +100,18 @@ export const signOut = (): void => {
 // User data functions
 export const getUserProfile = async (fid: number): Promise<UserProfile> => {
   try {
-    const { user } = await neynar.fetchUser(fid);
+    const response = await fetch(`/api/auth/user?fid=${fid}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
     
-    return {
-      fid: user.fid,
-      username: user.username,
-      displayName: user.displayName,
-      avatar: user.pfp?.url,
-      isVerified: user.verified
-    };
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to fetch user profile');
+    }
+    
+    return data.user;
   } catch (error) {
     console.error('Error fetching user profile:', error);
     throw error;

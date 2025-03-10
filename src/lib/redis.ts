@@ -1,6 +1,7 @@
 // src/lib/redis.ts
 import { createClient } from 'redis';
 import { Commitment } from './models/commitment';
+import { UserProfile, AuthState } from './auth';
 
 // Create Redis client - we'll connect when needed
 const getRedisClient = async () => {
@@ -19,10 +20,115 @@ const getRedisClient = async () => {
 
 // Key prefixes for different data types
 const COMMITMENT_PREFIX = 'commitment:';
-const USER_PREFIX = 'user:';
+const AUTH_STATE_PREFIX = 'auth:state:';
+const USER_SESSION_PREFIX = 'user:session:';
+const USER_DATA_PREFIX = 'user:data:';
 
-// Helper function to generate keys
-const generateKey = (prefix: string, id: string) => `${prefix}${id}`;
+// TTL values (in seconds)
+const AUTH_STATE_TTL = 60 * 10; // 10 minutes
+const USER_SESSION_TTL = 60 * 60 * 24 * 7; // 7 days
+const USER_DATA_TTL = 60 * 60; // 1 hour
+
+// Authentication related functions
+
+/**
+ * Store authentication state during sign-in flow
+ * @param stateId Unique state identifier
+ * @param data Additional data to store with the state
+ * @returns Promise resolving to true if successful
+ */
+export async function storeAuthState(stateId: string, data: any): Promise<boolean> {
+  const client = await getRedisClient();
+  const key = `${AUTH_STATE_PREFIX}${stateId}`;
+  
+  await client.set(key, JSON.stringify(data), {
+    EX: AUTH_STATE_TTL
+  });
+  
+  return true;
+}
+
+/**
+ * Retrieve and validate authentication state
+ * @param stateId Unique state identifier
+ * @returns The stored state data or null if not found
+ */
+export async function getAuthState(stateId: string): Promise<any | null> {
+  const client = await getRedisClient();
+  const key = `${AUTH_STATE_PREFIX}${stateId}`;
+  
+  const data = await client.get(key);
+  if (!data) return null;
+  
+  // Optionally delete the state after retrieval (one-time use)
+  await client.del(key);
+  
+  return JSON.parse(data);
+}
+
+/**
+ * Store user session after successful authentication
+ * @param sessionId Unique session identifier (usually the auth token)
+ * @param userData User data to store
+ * @returns Promise resolving to true if successful
+ */
+export async function storeUserSession(sessionId: string, userData: AuthState): Promise<boolean> {
+  const client = await getRedisClient();
+  const key = `${USER_SESSION_PREFIX}${sessionId}`;
+  
+  await client.set(key, JSON.stringify(userData), {
+    EX: USER_SESSION_TTL
+  });
+  
+  return true;
+}
+
+/**
+ * Retrieve user session data
+ * @param sessionId Unique session identifier
+ * @returns The stored user data or null if not found
+ */
+export async function getUserSession(sessionId: string): Promise<AuthState | null> {
+  const client = await getRedisClient();
+  const key = `${USER_SESSION_PREFIX}${sessionId}`;
+  
+  const data = await client.get(key);
+  if (!data) return null;
+  
+  return JSON.parse(data);
+}
+
+/**
+ * Cache user data by FID to reduce API calls
+ * @param fid Farcaster ID
+ * @param userData User data to cache
+ * @returns Promise resolving to true if successful
+ */
+export async function cacheUserData(fid: string | number, userData: UserProfile): Promise<boolean> {
+  const client = await getRedisClient();
+  const key = `${USER_DATA_PREFIX}${fid}`;
+  
+  await client.set(key, JSON.stringify(userData), {
+    EX: USER_DATA_TTL
+  });
+  
+  return true;
+}
+
+/**
+ * Get cached user data by FID
+ * @param fid Farcaster ID
+ * @returns The cached user data or null if not found
+ */
+export async function getCachedUserData(fid: string | number): Promise<UserProfile | null> {
+  const client = await getRedisClient();
+  const key = `${USER_DATA_PREFIX}${fid}`;
+  
+  const data = await client.get(key);
+  if (!data) return null;
+  
+  return JSON.parse(data);
+}
 
 // Commitment-related functions
 export const commitmentUtils = {
@@ -113,3 +219,6 @@ export const commitmentUtils = {
     return true;
   }
 };
+
+// Helper function to generate keys
+const generateKey = (prefix: string, id: string) => `${prefix}${id}`;

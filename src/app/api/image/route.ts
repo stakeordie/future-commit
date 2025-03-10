@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCanvas } from 'canvas';
 import { commitmentUtils } from '@/lib/redis';
-import { Commitment } from '@/lib/models/commitment';
+// import { Commitment } from '@/lib/models/commitment';
+import { CanvasRenderingContext2D as NodeCanvasRenderingContext2D } from 'canvas';
+
+
 
 // Function to generate images for our commitment tracker frame
 export async function GET(request: NextRequest) {
   // Get query parameters
   const searchParams = request.nextUrl.searchParams;
   const commitmentId = searchParams.get('id');
-  const showAll = searchParams.get('all') === 'true';
+  // const showAll = searchParams.get('all') === 'true';
   const errorMessage = searchParams.get('message');
   const signed = searchParams.get('signed') === 'true';
   
@@ -16,7 +19,7 @@ export async function GET(request: NextRequest) {
   const width = 1200;
   const height = 630;
   const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d') as NodeCanvasRenderingContext2D;
   
   // Fill background
   ctx.fillStyle = '#4F46E5'; // Indigo color
@@ -62,7 +65,7 @@ export async function GET(request: NextRequest) {
 
 // Draw an error message image
 async function drawErrorImage(
-  ctx: CanvasRenderingContext2D,
+  ctx: NodeCanvasRenderingContext2D,
   width: number,
   height: number,
   errorMessage: string
@@ -112,7 +115,7 @@ async function drawErrorImage(
 
 // Draw a single commitment image
 async function drawCommitmentImage(
-  ctx: CanvasRenderingContext2D,
+  ctx: NodeCanvasRenderingContext2D,
   width: number,
   height: number,
   commitmentId: string,
@@ -186,7 +189,7 @@ async function drawCommitmentImage(
 
 // Draw all commitments image
 async function drawAllCommitmentsImage(
-  ctx: CanvasRenderingContext2D,
+  ctx: NodeCanvasRenderingContext2D,
   width: number,
   height: number
 ) {
@@ -250,7 +253,7 @@ async function drawAllCommitmentsImage(
 
 // Helper function to draw rounded rectangles
 function roundRect(
-  ctx: CanvasRenderingContext2D,
+  ctx: NodeCanvasRenderingContext2D,
   x: number,
   y: number,
   width: number,
