@@ -18,18 +18,18 @@ export async function POST(request: NextRequest) {
     
     // Extract frame data from the request and validate with Neynar
     // This is the proper way to validate frame messages in production
-    const { isValid, message } = await neynar.validateFrameAction(body);
-    
+    const { valid: isValid, action } = await neynar.validateFrameAction(body);
+  
     // If validation fails, return an error
     if (!isValid) {
-      console.error('Frame validation failed:', message);
+      console.error('Frame validation failed:', action);
       return createErrorFrame('Invalid frame message');
     }
     
     // Extract trusted data from the validated message
-    const buttonIndex = message.button?.index || 0;
-    const inputText = message.input?.text || '';
-    const fid = message.interactor.fid;
+    const buttonIndex = action.tapped_button.index || 0;
+    const inputText = action.input?.text || '';
+    const fid = action.interactor.fid;
     
     // Log the frame data for debugging
     console.log('Frame data received:', { buttonIndex, inputText, fid });

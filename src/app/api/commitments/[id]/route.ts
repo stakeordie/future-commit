@@ -5,10 +5,11 @@ import { commitmentUtils } from '@/lib/redis';
 // GET /api/commitments/[id] - Get commitment by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    // In Next.js 15, params is a Promise that needs to be awaited
+    const { id } = await params;
     
     if (!id) {
       return NextResponse.json(
