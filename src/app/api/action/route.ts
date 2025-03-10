@@ -4,9 +4,9 @@ import { commitmentUtils } from '@/lib/redis';
 
 // Initialize Neynar client - we'll use this to validate the frame message
 // You'll need to replace this with your actual Neynar API key
-const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY || 'REPLACE_WITH_YOUR_NEYNAR_API_KEY';
-// Create Neynar client instance - uncomment when ready to use
-// const neynar = new NeynarAPIClient({ apiKey: NEYNAR_API_KEY });
+const NEYNAR_API_KEY = process.env.NEXT_PUBLIC_NEYNAR_API_KEY || 'REPLACE_WITH_YOUR_NEYNAR_API_KEY';
+// Create Neynar client instance
+const neynar = new NeynarAPIClient({ apiKey: NEYNAR_API_KEY });
 
 // Get the base URL for the frame
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -16,16 +16,20 @@ export async function POST(request: NextRequest) {
     // Parse the request body
     const body = await request.json();
     
-    // Extract frame data from the request
-    // In a real implementation, you would validate this with Neynar
-    // For example: const { isValid, message } = await neynar.validateFrameAction(body);
-    const frameData = body;
-    const buttonIndex = frameData.untrustedData?.buttonIndex || 0;
-    const inputText = frameData.untrustedData?.inputText || '';
-    const fid = frameData.untrustedData?.fid;
+    // Extract frame data from the request and validate with Neynar
+    // This is the proper way to validate frame messages in production
+    const { isValid, message } = await neynar.validateFrameAction(body);
     
-    // In a production app, you should validate the frame message
-    // This is a simplified version for demonstration
+    // If validation fails, return an error
+    if (!isValid) {
+      console.error('Frame validation failed:', message);
+      return createErrorFrame('Invalid frame message');
+    }
+    
+    // Extract trusted data from the validated message
+    const buttonIndex = message.button?.index || 0;
+    const inputText = message.input?.text || '';
+    const fid = message.interactor.fid;
     
     // Log the frame data for debugging
     console.log('Frame data received:', { buttonIndex, inputText, fid });

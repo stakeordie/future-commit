@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '../providers/auth-provider';
+import { useNeynarContext } from '@neynar/react';
 import { useRouter } from 'next/navigation';
 import { Commitment } from '@/lib/models/commitment';
 import { commitmentUtils } from '@/lib/redis';
+import Image from 'next/image';
 
 export default function Dashboard() {
-  const { auth, signOut } = useAuth();
+  const { isAuthenticated, user, logoutUser } = useNeynarContext();
   const router = useRouter();
   const [commitments, setCommitments] = useState<Commitment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,10 +18,10 @@ export default function Dashboard() {
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (!auth?.isAuthenticated) {
+    if (!isAuthenticated) {
       router.push('/');
     }
-  }, [auth, router]);
+  }, [isAuthenticated, router]);
 
   // Load commitments
   useEffect(() => {
@@ -37,15 +38,15 @@ export default function Dashboard() {
       }
     }
 
-    if (auth?.isAuthenticated) {
+    if (isAuthenticated) {
       loadCommitments();
     }
-  }, [auth]);
+  }, [isAuthenticated]);
 
   // Create new commitment
   const handleCreateCommitment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCommitmentText.trim() || !auth?.user?.fid) return;
+    if (!newCommitmentText.trim() || !user?.fid) return;
 
     setCreating(true);
     setError(null);
@@ -58,7 +59,7 @@ export default function Dashboard() {
         },
         body: JSON.stringify({
           text: newCommitmentText,
-          creatorFid: auth.user.fid,
+          creatorFid: user.fid,
         }),
       });
 
@@ -85,7 +86,7 @@ export default function Dashboard() {
 
   // Sign a commitment
   const handleSignCommitment = async (commitmentId: string) => {
-    if (!auth?.user?.fid) return;
+    if (!user?.fid) return;
 
     try {
       const response = await fetch('/api/commitments/sign', {
@@ -95,7 +96,7 @@ export default function Dashboard() {
         },
         body: JSON.stringify({
           commitmentId,
-          fid: auth.user.fid,
+          fid: user.fid,
         }),
       });
 
@@ -113,43 +114,52 @@ export default function Dashboard() {
     }
   };
 
-  if (!auth?.isAuthenticated) {
+  if (!isAuthenticated) {
     return null; // Will redirect in useEffect
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">Commitment Tracker</h1>
-          <div className="flex items-center space-x-4">
-            <div className="text-sm text-gray-700">
-              <span className="font-medium">@{auth.user?.username}</span>
+    <div className="snes-page snes-container">
+      <header className="snes-header">
+        <div className="mx-auto max-w-7xl flex justify-between items-center">
+          <h1 className="snes-header-title">Commitment Tracker</h1>
+          <div className="snes-user-profile">
+            {user?.pfp_url && (
+              <Image
+                src={user.pfp_url}
+                width={32}
+                height={32}
+                alt="User Profile"
+                className="snes-avatar"
+              />
+            )}
+            <div>
+              <span className="snes-username">@{user?.username}</span>
+              <button
+                onClick={logoutUser}
+                className="snes-button snes-button-small snes-button-danger"
+              >
+                Sign Out
+              </button>
             </div>
-            <button
-              onClick={signOut}
-              className="px-3 py-1 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Sign Out
-            </button>
           </div>
         </div>
       </header>
 
-      <main className="py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
-        <div className="px-4 py-6 bg-white shadow sm:p-6 sm:rounded-lg">
-          <h2 className="text-lg font-medium text-gray-900">Create New Commitment</h2>
-          <form onSubmit={handleCreateCommitment} className="mt-4">
+      <main className="mx-auto max-w-7xl">
+        <div className="snes-panel">
+          <h2 className="snes-title">Create New Commitment</h2>
+          <form onSubmit={handleCreateCommitment}>
             <div>
-              <label htmlFor="commitment-text" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="commitment-text" className="snes-label">
                 Commitment Text
               </label>
-              <div className="mt-1">
+              <div>
                 <textarea
                   id="commitment-text"
                   name="text"
                   rows={3}
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="snes-textarea"
                   placeholder="I commit to..."
                   value={newCommitmentText}
                   onChange={(e) => setNewCommitmentText(e.target.value)}
@@ -157,67 +167,72 @@ export default function Dashboard() {
                 />
               </div>
             </div>
-            <div className="mt-4">
+            <div>
               <button
                 type="submit"
                 disabled={creating}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="snes-button"
               >
-                {creating ? 'Creating...' : 'Create Commitment'}
+                {creating ? (
+                  <>
+                    <span className="snes-loading"></span>
+                    Creating...
+                  </>
+                ) : 'Create Commitment'}
               </button>
             </div>
           </form>
         </div>
 
         {error && (
-          <div className="px-4 py-3 mt-6 text-red-700 bg-red-100 rounded-md">
+          <div className="snes-alert snes-alert-error">
             {error}
           </div>
         )}
 
-        <div className="mt-6">
-          <h2 className="text-lg font-medium text-gray-900">Your Commitments</h2>
+        <div className="snes-panel">
+          <h2 className="snes-title">Your Commitments</h2>
           
           {loading ? (
-            <p className="mt-4 text-gray-500">Loading commitments...</p>
+            <div className="snes-panel snes-text">
+              <span className="snes-loading"></span>
+              Loading commitments...
+            </div>
           ) : commitments.length === 0 ? (
-            <p className="mt-4 text-gray-500">No commitments found. Create your first one!</p>
+            <div className="snes-empty-state">
+              No commitments found. Create your first one!
+            </div>
           ) : (
-            <ul className="mt-4 space-y-4">
+            <div className="space-y-4">
               {commitments.map((commitment) => (
-                <li key={commitment.id} className="p-4 bg-white rounded-lg shadow">
-                  <div className="flex justify-between">
-                    <h3 className="text-lg font-medium">{commitment.text}</h3>
-                    <span className="text-sm text-gray-500">
+                <div key={commitment.id} className="snes-card">
+                  <div className="snes-card-header">
+                    <h3 className="snes-card-title">{commitment.text}</h3>
+                    <span className="snes-card-date">
                       {new Date(commitment.createdAt).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Created by: FID {commitment.creatorFid}
-                  </p>
-                  <div className="mt-3">
-                    <span className="text-sm font-medium text-gray-700">
+                  <div className="snes-card-content">
+                    <p className="snes-text">
+                      Created by: FID {commitment.creatorFid}
+                    </p>
+                  </div>
+                  <div className="snes-card-footer">
+                    <span className="snes-text">
                       {Object.keys(commitment.participants || {}).length} participants
                     </span>
+                    {user && commitment.creatorFid !== user.fid && (
+                      <button
+                        onClick={() => handleSignCommitment(commitment.id)}
+                        className="snes-button snes-button-small snes-button-secondary"
+                      >
+                        Sign
+                      </button>
+                    )}
                   </div>
-                  
-                  {auth.user && !commitment.participants?.[auth.user.fid] && (
-                    <button
-                      onClick={() => handleSignCommitment(commitment.id)}
-                      className="px-3 py-1 mt-3 text-sm text-white bg-green-600 rounded-md hover:bg-green-700"
-                    >
-                      Sign This Commitment
-                    </button>
-                  )}
-                  
-                  {auth.user && commitment.participants?.[auth.user.fid] && (
-                    <div className="px-3 py-1 mt-3 text-sm text-white bg-gray-500 rounded-md inline-block">
-                      You've signed this commitment
-                    </div>
-                  )}
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       </main>
